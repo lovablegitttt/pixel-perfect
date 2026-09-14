@@ -97,7 +97,13 @@ const QUICK_COLORS = [
   "#64748b",
 ];
 
-export default function ScreenshotEditor({ onBeforeExport }: { onBeforeExport?: () => Promise<boolean> }) {
+export default function ScreenshotEditor({
+  onBeforeExport,
+  tool = "edit-text",
+}: {
+  onBeforeExport?: () => Promise<boolean>;
+  tool?: EditorToolId;
+}) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [layers, setLayers] = useState<Layer[]>([]);
   const [history, setHistory] = useState<Layer[][]>([]);
