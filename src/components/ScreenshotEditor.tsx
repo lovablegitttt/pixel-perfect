@@ -574,6 +574,224 @@ export default function ScreenshotEditor({
     setStatus("All edits reset to original");
   };
 
+  /* ----------------------------- tool actions ----------------------------- */
+
+  const extractedText = layers.map((l) => l.text).filter(Boolean).join(" ");
+
+  const eraseLayer = (id: string) => {
+    commitLayers(layers.map((l) => (l.id === id ? { ...l, text: "", edited: true } : l)));
+    setToolNote("Word erased — the background was painted back in.");
+  };
+
+  const eraseAll = () => {
+    commitLayers(layers.map((l) => ({ ...l, text: "", edited: true })));
+    setToolNote("All detected text erased.");
+  };
+
+  const copyAllText = async () => {
+    try {
+      await navigator.clipboard.writeText(extractedText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      setToolNote("Text copied to your clipboard.");
+    } catch {
+      setToolNote("Copying was blocked — select the text below and copy it manually.");
+    }
+  };
+
+  const replaceAll = () => {
+    if (!findText) {
+      setToolNote("Type the word you want to find first.");
+      return;
+    }
+    let count = 0;
+    const next = layers.map((l) => {
+      if (!l.text.toLowerCase().includes(findText.toLowerCase())) return l;
+      count++;
+      const re = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      return { ...l, text: l.text.replace(re, replaceWith), edited: true };
+    });
+    commitLayers(next);
+    setToolNote(count ? `Replaced in ${count} place${count === 1 ? "" : "s"}.` : "That word was not found.");
+  };
+
+  const addTextAt = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !image) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * image.naturalWidth;
+    const y = ((clientY - rect.top) / rect.height) * image.naturalHeight;
+    const fontSize = Math.max(14, Math.round(image.naturalWidth / 34));
+    const layer: Layer = {
+      id: uid(),
+      text: "New text",
+      original: "",
+      x,
+      y,
+      w: fontSize * 5,
+      h: fontSize,
+      mask: new Uint8Array(0),
+      baselineY: y + fontSize * 0.82,
+      fontSize,
+      family: FAMILIES[0]!,
+      weight: 600,
+      italic: false,
+      color: "#0f172a",
+      bg: "#ffffff",
+      letterSpacing: 0,
+      align: "left",
+      dx: 0,
+      dy: 0,
+      edited: true,
+      added: true,
+    };
+    commitLayers([...layers, layer]);
+    setSelected(layer.id);
+    setPlacing(false);
+    setToolNote("Text added — type your wording in the inspector below.");
+  };
+
+  const runAi = async (mode: "translate" | "fix") => {
+    const targets = layers.filter((l) => l.text.trim());
+    if (!targets.length) {
+      setToolNote("Load a screenshot with text first.");
+      return;
+    }
+    setToolBusy(true);
+    setToolNote(mode === "translate" ? `Translating into ${language}…` : "Checking spelling…");
+    try {
+      const { transformTexts } = await import("@/lib/text-ai.functions");
+      const result = await transformTexts({
+        data: { mode, language, items: targets.map((l) => l.text) },
+      });
+      const map = new Map(targets.map((l, i) => [l.id, result.items[i] ?? l.text]));
+      commitLayers(
+        layers.map((l) => (map.has(l.id) ? { ...l, text: map.get(l.id)!, edited: true } : l)),
+      );
+      setToolNote(mode === "translate" ? `Translated into ${language}.` : "Spelling and casing corrected.");
+    } catch (e) {
+      setToolNote(e instanceof Error ? e.message : "That did not work. Please try again.");
+    } finally {
+      setToolBusy(false);
+    }
+  };
+
+  const toolPanel = image ? (
+    <div className="iphone-glass-tray space-y-4 rounded-[30px] p-5 sm:p-6">
+      {tool === "erase-text" && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => sel && eraseLayer(sel.id)} disabled={!sel} className="iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold disabled:opacity-50">
+            Erase selected word
+          </button>
+          <button type="button" onClick={eraseAll} className="iphone-btn-glass rounded-2xl px-5 py-2.5 text-xs font-bold">
+            Erase all text
+          </button>
+          <span className="text-xs font-medium text-sky-900/70">Tap a word on the screenshot, then erase it.</span>
+        </div>
+      )}
+
+      {tool === "copy-text" && (
+        <div className="space-y-3">
+          <button type="button" onClick={copyAllText} className="iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold">
+            {copied ? "Copied!" : "Copy all text"}
+          </button>
+          <textarea
+            readOnly
+            value={extractedText}
+            rows={5}
+            className="w-full rounded-2xl border border-sky-200 bg-white/95 px-4 py-3 text-sm text-slate-900"
+          />
+        </div>
+      )}
+
+      {tool === "add-text" && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPlacing((p) => !p)}
+            className={placing ? "iphone-btn-glass rounded-2xl px-5 py-2.5 text-xs font-bold" : "iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold"}
+          >
+            {placing ? "Cancel placing" : "Add a text box"}
+          </button>
+          <span className="text-xs font-medium text-sky-900/70">
+            {placing ? "Now tap anywhere on the screenshot." : "Then edit the wording, size and colour below."}
+          </span>
+        </div>
+      )}
+
+      {tool === "replace-text" && (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5 text-xs font-bold text-sky-950">
+            Find
+            <input value={findText} onChange={(e) => setFindText(e.target.value)} className="rounded-xl border border-sky-200 bg-white/95 px-3 py-2.5 text-xs font-semibold outline-none focus:border-sky-500" />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-bold text-sky-950">
+            Replace with
+            <input value={replaceWith} onChange={(e) => setReplaceWith(e.target.value)} className="rounded-xl border border-sky-200 bg-white/95 px-3 py-2.5 text-xs font-semibold outline-none focus:border-sky-500" />
+          </label>
+          <button type="button" onClick={replaceAll} className="iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold">
+            Replace everywhere
+          </button>
+        </div>
+      )}
+
+      {tool === "translate-text" && (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5 text-xs font-bold text-sky-950">
+            Translate into
+            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-xl border border-sky-200 bg-white/95 px-3 py-2.5 text-xs font-semibold outline-none focus:border-sky-500">
+              {["Spanish", "French", "German", "Portuguese", "Italian", "Hindi", "Arabic", "Japanese", "Korean", "Chinese (Simplified)", "English"].map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={() => void runAi("translate")} disabled={toolBusy} className="iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold disabled:opacity-50">
+            Translate screenshot
+          </button>
+        </div>
+      )}
+
+      {tool === "fix-text" && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => void runAi("fix")} disabled={toolBusy} className="iphone-btn-primary rounded-2xl px-5 py-2.5 text-xs font-bold disabled:opacity-50">
+            Fix spelling in all text
+          </button>
+          <span className="text-xs font-medium text-sky-900/70">Corrects typos and misread characters without changing meaning.</span>
+        </div>
+      )}
+
+      {tool === "font-finder" && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-sky-900/70">Tap any word to see the closest matching font.</p>
+          {sel ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                ["Font", sel.family.split(",")[0]!.replace(/'/g, "")],
+                ["Size", `${Math.round(sel.fontSize)} px`],
+                ["Thickness", String(sel.weight)],
+                ["Colour", sel.color],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-sky-200 bg-white/90 px-4 py-3">
+                  <p className="text-[10px] font-bold tracking-wide text-sky-700 uppercase">{label}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">{value}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs font-semibold text-slate-500">No word selected yet.</p>
+          )}
+        </div>
+      )}
+
+      {toolNote && (
+        <p className="rounded-2xl border border-sky-200 bg-white/80 px-4 py-2.5 text-xs font-semibold text-sky-900">
+          {toolBusy ? "Working… " : ""}
+          {toolNote}
+        </p>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-6">
       <input
