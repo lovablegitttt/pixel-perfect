@@ -124,6 +124,16 @@ export default function ScreenshotEditor({
   const [copySuccess, setCopySuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
+  // Tool workflow state
+  const [findText, setFindText] = useState("");
+  const [replaceWith, setReplaceWith] = useState("");
+  const [language, setLanguage] = useState("Spanish");
+  const [toolBusy, setToolBusy] = useState(false);
+  const [toolNote, setToolNote] = useState("");
+  const [placing, setPlacing] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const isPdfTool = tool === "pdf-text-editor";
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
