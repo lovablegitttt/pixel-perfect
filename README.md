@@ -1,14 +1,16 @@
-# Welcome to your Lovable project
+# Crystal Edit Suite
+
+Text editor feature is already there I want all other features to be in it  i have sent the scresnhot and make it totally working site with Razorpay API key n all I’ve sent you already use the glassmorphism blue and white theme that should look 👀 too good and make it next level look totally paid site with my contact @connector:google_mail:"Gmail" @screesnhotguru@gmail.com and no refund provact policy about us and all should be there so it can get approval for the razosrpay payment gateway terms and condition shipping delivery for saas site ssl certificate also mandatory
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/a33d7df8-8306-412b-ab62-010cb9db8300).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +22,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
