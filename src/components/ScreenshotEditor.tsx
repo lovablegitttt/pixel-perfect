@@ -217,8 +217,22 @@ export default function ScreenshotEditor({
     }
   }, []);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback(async (incoming: File) => {
     setBusy(true);
+    setToolNote("");
+    let file = incoming;
+    if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+      setStatus("Opening the first page of your PDF…");
+      try {
+        const { pdfFirstPageAsFile } = await import("@/lib/file-tools");
+        file = await pdfFirstPageAsFile(incoming);
+      } catch (e) {
+        console.error(e);
+        setStatus("That PDF could not be opened. Please try another file.");
+        setBusy(false);
+        return;
+      }
+    }
     setLayers([]);
     setHistory([]);
     setHistoryIndex(-1);
