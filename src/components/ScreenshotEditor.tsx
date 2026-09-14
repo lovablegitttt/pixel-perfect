@@ -413,10 +413,12 @@ export default function ScreenshotEditor({
 
     for (const l of layers) {
       if (!l.edited && l.text === l.original) continue;
-      const padX = Math.max(1, l.fontSize * 0.12);
-      const padY = Math.max(1, l.fontSize * 0.28);
-      ctx.fillStyle = l.bg;
-      ctx.fillRect(l.x - padX, l.y - padY, l.w + padX * 2, l.h + padY * 2);
+      if (!l.added) {
+        const padX = Math.max(1, l.fontSize * 0.12);
+        const padY = Math.max(1, l.fontSize * 0.28);
+        ctx.fillStyle = l.bg;
+        ctx.fillRect(l.x - padX, l.y - padY, l.w + padX * 2, l.h + padY * 2);
+      }
       if (!l.text.trim()) continue;
 
       ctx.fillStyle = l.color;
