@@ -1342,6 +1342,25 @@ export default function ScreenshotEditor({
         </div>
       )}
 
+      {/* Full-screen loading overlay while a screenshot is being processed */}
+      {busy && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/35 p-6 backdrop-blur-md animate-fade-in">
+          <div className="iphone-glass-tray flex w-full max-w-xs flex-col items-center gap-4 rounded-[32px] px-8 py-10 text-center shadow-2xl animate-scale-in">
+            <span className="relative flex h-14 w-14 items-center justify-center">
+              <span className="absolute inset-0 animate-spin rounded-full border-4 border-sky-200 border-t-sky-600" />
+              <Sparkles className="h-5 w-5 text-sky-600 pulse" />
+            </span>
+            <div>
+              <p className="font-display text-sm font-bold text-slate-900">Reading your screenshot</p>
+              <p className="mt-1 text-xs font-medium text-sky-900/70">{status || "Just a moment…"}</p>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-sky-100">
+              <div className="h-full w-1/3 animate-[slide-in-right_1.2s_ease-in-out_infinite] rounded-full bg-sky-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* =========================================================================
           iOS Frosted Glass Export Action Sheet Modal
           ========================================================================= */}
