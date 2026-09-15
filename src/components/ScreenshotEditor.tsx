@@ -305,6 +305,8 @@ export default function ScreenshotEditor({
         }
       }
       await worker.terminate();
+      setProgress((p) => Math.max(p, 92));
+      setStatus("Matching fonts and colours…");
 
       type Bbox = { x0: number; y0: number; x1: number; y1: number };
       // One segment per WORD: each word becomes its own independently editable
@@ -398,6 +400,7 @@ export default function ScreenshotEditor({
         });
       }
 
+      setProgress(100);
       setLayers(found);
       setHistory([found]);
       setHistoryIndex(0);
