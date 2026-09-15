@@ -113,6 +113,7 @@ export default function ScreenshotEditor({
   const [scale, setScale] = useState(1);
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [showLayerList, setShowLayerList] = useState(true);
   const [showInspector, setShowInspector] = useState(true);
@@ -219,6 +220,7 @@ export default function ScreenshotEditor({
 
   const handleFile = useCallback(async (incoming: File) => {
     setBusy(true);
+    setProgress(3);
     setToolNote("");
     let file = incoming;
     if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
@@ -241,11 +243,13 @@ export default function ScreenshotEditor({
     setShowExportModal(false);
     setExportPreviewUrl(null);
     setStatus("Loading screenshot…");
+    setProgress(8);
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.src = url;
     await img.decode();
     setImage(img);
+    setProgress(15);
 
     const off = document.createElement("canvas");
     off.width = img.naturalWidth;
@@ -255,9 +259,17 @@ export default function ScreenshotEditor({
     const pixels = octx.getImageData(0, 0, off.width, off.height).data;
 
     setStatus("Analyzing screenshot typography & layout…");
+    let passBase = 20;
+    let passSpan = 5;
     try {
       const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng");
+      const worker = await createWorker("eng", 1, {
+        logger: (m: { progress?: number }) => {
+          const p = typeof m.progress === "number" ? m.progress : 0;
+          setProgress((prev) => Math.max(prev, Math.round(passBase + p * passSpan)));
+        },
+      });
+      setProgress((p) => Math.max(p, 25));
       // Upscale more aggressively so small text is legible to the OCR engine.
       const ocrScale = Math.min(4, Math.max(1, Math.round(2200 / Math.max(1, off.width))));
       let source: HTMLCanvasElement | File = file;
@@ -277,6 +289,9 @@ export default function ScreenshotEditor({
       // Pass 1: normal page layout. Pass 2: sparse text, which catches isolated
       // words, numbers, badges and symbols the layout pass misses.
       for (const psm of ["3", "11"]) {
+        passBase = psm === "3" ? 30 : 60;
+        passSpan = 30;
+        setStatus(psm === "3" ? "Detecting text blocks…" : "Catching small and isolated words…");
         try {
           await worker.setParameters({
             // @ts-expect-error tesseract.js accepts the numeric PSM as a string
@@ -290,6 +305,8 @@ export default function ScreenshotEditor({
         }
       }
       await worker.terminate();
+      setProgress((p) => Math.max(p, 92));
+      setStatus("Matching fonts and colours…");
 
       type Bbox = { x0: number; y0: number; x1: number; y1: number };
       // One segment per WORD: each word becomes its own independently editable
@@ -383,6 +400,7 @@ export default function ScreenshotEditor({
         });
       }
 
+      setProgress(100);
       setLayers(found);
       setHistory([found]);
       setHistoryIndex(0);
