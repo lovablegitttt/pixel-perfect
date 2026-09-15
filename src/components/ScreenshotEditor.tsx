@@ -220,6 +220,7 @@ export default function ScreenshotEditor({
 
   const handleFile = useCallback(async (incoming: File) => {
     setBusy(true);
+    setProgress(3);
     setToolNote("");
     let file = incoming;
     if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
@@ -242,11 +243,13 @@ export default function ScreenshotEditor({
     setShowExportModal(false);
     setExportPreviewUrl(null);
     setStatus("Loading screenshot…");
+    setProgress(8);
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.src = url;
     await img.decode();
     setImage(img);
+    setProgress(15);
 
     const off = document.createElement("canvas");
     off.width = img.naturalWidth;
