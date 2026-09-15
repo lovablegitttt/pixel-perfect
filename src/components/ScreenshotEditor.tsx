@@ -113,6 +113,7 @@ export default function ScreenshotEditor({
   const [scale, setScale] = useState(1);
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [showLayerList, setShowLayerList] = useState(true);
   const [showInspector, setShowInspector] = useState(true);
