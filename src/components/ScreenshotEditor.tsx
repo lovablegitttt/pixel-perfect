@@ -259,9 +259,17 @@ export default function ScreenshotEditor({
     const pixels = octx.getImageData(0, 0, off.width, off.height).data;
 
     setStatus("Analyzing screenshot typography & layout…");
+    let passBase = 20;
+    let passSpan = 5;
     try {
       const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng");
+      const worker = await createWorker("eng", 1, {
+        logger: (m: { progress?: number }) => {
+          const p = typeof m.progress === "number" ? m.progress : 0;
+          setProgress((prev) => Math.max(prev, Math.round(passBase + p * passSpan)));
+        },
+      });
+      setProgress((p) => Math.max(p, 25));
       // Upscale more aggressively so small text is legible to the OCR engine.
       const ocrScale = Math.min(4, Math.max(1, Math.round(2200 / Math.max(1, off.width))));
       let source: HTMLCanvasElement | File = file;
