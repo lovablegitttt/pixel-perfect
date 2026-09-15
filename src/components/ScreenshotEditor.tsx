@@ -289,6 +289,9 @@ export default function ScreenshotEditor({
       // Pass 1: normal page layout. Pass 2: sparse text, which catches isolated
       // words, numbers, badges and symbols the layout pass misses.
       for (const psm of ["3", "11"]) {
+        passBase = psm === "3" ? 30 : 60;
+        passSpan = 30;
+        setStatus(psm === "3" ? "Detecting text blocks…" : "Catching small and isolated words…");
         try {
           await worker.setParameters({
             // @ts-expect-error tesseract.js accepts the numeric PSM as a string
